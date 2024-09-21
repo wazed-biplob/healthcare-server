@@ -9,7 +9,7 @@ export const globalErrorHandler = (
   res.status(500).json({
     success: false,
     statusCode: 500,
-    message: error?.name || "Error occured",
+    message: error?.message || "Error occured",
     error: error,
   });
 };

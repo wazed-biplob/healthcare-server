@@ -1,24 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import { adminServices } from "./admin.service";
-import { SendResponse } from "../utils/functions";
+import { catchAsync, SendResponse } from "../utils/functions";
 
-const getAllAdmin = async (req: Request, res: Response) => {
-  try {
-    const result = await adminServices.getAllAdmin(req.query);
-    res.status(200).json({
-      success: true,
-      message: "Admin retrieved successfully",
-      meta: result.meta,
-      data: result.data,
-    });
-  } catch (e: any) {
-    res.status(500).json({
-      success: false,
-      message: e.message,
-      data: e,
-    });
-  }
-};
+const getAllAdmin = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminServices.getAllAdmin(req.query);
+  res.status(200).json({
+    success: true,
+    message: "Admin retrieved successfully",
+    meta: result.meta,
+    data: result.data,
+  });
+});
 
 const getAdminById = async (req: Request, res: Response) => {
   const { id } = req.params;

@@ -3,6 +3,7 @@ import { adminQueryData } from "../utils/constants";
 import { Admin, AllAdmin, QueryParams } from "../utils/types";
 
 const prisma = new PrismaClient();
+
 const getAllAdmin = async (queries: QueryParams): Promise<AllAdmin> => {
   const {
     searchTerm,
