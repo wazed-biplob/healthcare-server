@@ -2,6 +2,8 @@ import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ResponseResult } from "./types";
 import { AnyZodObject } from "zod";
+import { AppError } from "./class";
+import config from "../config";
 
 export const pick = <T extends object, K extends keyof T>(
   obj: T,
@@ -49,4 +51,26 @@ export const generateToken = (jwtPayload: any, key: string, extra: any) => {
 
 export const verifyToken = (token: string, key: Secret) => {
   return jwt.verify(token, key) as JwtPayload;
+};
+
+export const validateAdmin = (...roles: string[]) => {
+  return (req: Request & { user?: any }, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization;
+      if (!token) {
+        throw new AppError(401, "You are not authorised!");
+      }
+      const isVerifiedUser = verifyToken(
+        token,
+        config.jwt.jwt_secret as string
+      );
+      req.user = isVerifiedUser;
+      if (roles.length && !roles.includes(isVerifiedUser.role)) {
+        throw new AppError(401, "You are forbidden!");
+      }
+      next();
+    } catch (e) {
+      next(e);
+    }
+  };
 };

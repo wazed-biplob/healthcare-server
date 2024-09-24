@@ -1,6 +1,9 @@
-import { PrismaClient, UserStatus } from "@prisma/client";
+import { PrismaClient, UserRole, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { generateToken, verifyToken } from "../utils/functions";
+import config from "../config";
+import { nodeMailerSender } from "../utils/nodeMailer";
+import { AppError } from "../utils/class";
 
 const prisma = new PrismaClient();
 
@@ -22,10 +25,10 @@ const loginUser = async (data: any) => {
       email: userData.email,
       role: userData.role,
     },
-    "abcde",
+    config.jwt.jwt_secret as string,
     {
       algorithm: "HS256",
-      expiresIn: "5m",
+      expiresIn: config.jwt.jwt_expires_in,
     }
   );
 
@@ -34,10 +37,10 @@ const loginUser = async (data: any) => {
       email: userData.email,
       role: userData.role,
     },
-    "abcdef",
+    config.jwt.refresh_token_secret as string,
     {
       algorithm: "HS256",
-      expiresIn: "30d",
+      expiresIn: config.jwt.refresh_token_expires_in,
     }
   );
 
@@ -50,7 +53,10 @@ const loginUser = async (data: any) => {
 const refreshToken = async (refreshToken: string) => {
   let decodedData;
   try {
-    decodedData = verifyToken(refreshToken, "abcdef");
+    decodedData = verifyToken(
+      refreshToken,
+      config.jwt.refresh_token_secret as string
+    );
   } catch (e) {
     throw new Error("You are not authorised");
   }
@@ -66,7 +72,7 @@ const refreshToken = async (refreshToken: string) => {
       email: userData.email,
       role: userData.role,
     },
-    "abcde",
+    config.jwt.jwt_secret as string,
     {
       algorithm: "HS256",
       expiresIn: "5m",
@@ -78,7 +84,91 @@ const refreshToken = async (refreshToken: string) => {
   };
 };
 
+const changePassword = async (user: any, payload: any) => {
+  const userData = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const hashedPassword = await bcrypt.compare(
+    payload.oldPassword,
+    userData.password
+  );
+  if (!hashedPassword) {
+    throw new Error(`Password doesn't match`);
+  }
+  const newHashedPassword = await bcrypt.hash(payload.newPassword, 12);
+
+  await prisma.user.update({
+    where: {
+      email: userData.email,
+    },
+    data: {
+      password: newHashedPassword,
+      needsPasswordChange: false,
+    },
+  });
+  return {
+    message: "Password Changed!",
+  };
+};
+
+const forgotPassword = async (payload: any) => {
+  const userData = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: payload.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const resetPasswordToken = generateToken(
+    { email: userData.email, role: userData.role },
+    config.jwt.reset_password_token as string,
+    { expiresIn: config.jwt.reset_password_expires_in }
+  );
+  const resetPasswordLink =
+    config.reset_password_link +
+    `?id=${userData.id}&token=${resetPasswordToken}`;
+
+  await nodeMailerSender(userData.email, resetPasswordLink);
+};
+
+const resetPassword = async (token: string, payload: any) => {
+  const userData = await prisma.user.findUniqueOrThrow({
+    where: {
+      id: payload.id,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const validateToken = verifyToken(
+    token,
+    config.jwt.reset_password_token as string
+  );
+  if (!validateToken) {
+    throw new AppError(404, "Session Expired!");
+  }
+  // hashing and updating
+  const hashedPassword = await bcrypt.hash(
+    payload.password,
+    config.password_hash_key as string
+  );
+  const result = await prisma.user.update({
+    where: {
+      id: payload.id,
+    },
+    data: {
+      password: hashedPassword,
+    },
+  });
+};
+
 export const authServices = {
   loginUser,
   refreshToken,
+  changePassword,
+  forgotPassword,
+  resetPassword,
 };
