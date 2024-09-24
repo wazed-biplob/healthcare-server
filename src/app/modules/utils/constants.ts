@@ -7,3 +7,12 @@ export const adminUpdateSchema = z.object({
     contactNumber: z.string().optional(),
   }),
 });
+
+export const createAdminSchema = z.object({
+  password: z.string(),
+  admin: z.object({
+    name: z.string(),
+    email: z.string(),
+    contactNumber: z.string(),
+  }),
+});

@@ -1,9 +1,11 @@
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ResponseResult } from "./types";
-import { AnyZodObject } from "zod";
+import { AnyZodObject, Schema } from "zod";
 import { AppError } from "./class";
 import config from "../config";
+import multer from "multer";
+import path from "path";
 
 export const pick = <T extends object, K extends keyof T>(
   obj: T,
@@ -34,11 +36,22 @@ export const catchAsync = (fn: RequestHandler) => {
 };
 
 // zod validations
-export const validateRequest =
+export const validateUpdateAdmin =
   (schema: AnyZodObject) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({ body: req.body });
+      next();
+    } catch (e) {
+      next(e);
+    }
+  };
+
+export const validateCreateAdmin =
+  (schema: AnyZodObject) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync(req.body);
       next();
     } catch (e) {
       next(e);
@@ -53,7 +66,7 @@ export const verifyToken = (token: string, key: Secret) => {
   return jwt.verify(token, key) as JwtPayload;
 };
 
-export const validateAdmin = (...roles: string[]) => {
+export const validateUserRole = (...roles: string[]) => {
   return (req: Request & { user?: any }, res: Response, next: NextFunction) => {
     try {
       const token = req.headers.authorization;
@@ -74,3 +87,14 @@ export const validateAdmin = (...roles: string[]) => {
     }
   };
 };
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(process.cwd(), "uploads"));
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+
+export const upload = multer({ storage: storage });
