@@ -12,10 +12,10 @@ import { createAdminSchema } from "../utils/constants";
 const router = express.Router();
 
 router.post(
-  "/",
-  // validateUserRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  upload.single("file"),
-  async (req, res) => {
+  "/", 
+  validateUserRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  upload.single('file'),
+  async (req, res) => {    
     req.body = createAdminSchema.parse(JSON.parse(req.body.data));
     return userController.createAdmin(req, res);
   }

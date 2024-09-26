@@ -3,11 +3,13 @@ import cors from "cors";
 import { router } from "./app/routes";
 import cookieParser from "cookie-parser";
 import { globalErrorHandler } from "./app/modules/utils/globalErrorHandler";
+
 const app: Application = express();
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/v1", router);
+
 
 app.use(globalErrorHandler);
 
