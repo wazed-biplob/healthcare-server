@@ -1,3 +1,4 @@
+import { Gender } from "@prisma/client";
 import { z } from "zod";
 
 export const adminQueryData = ["name", "email", "contactNumber"];
@@ -17,3 +18,22 @@ export const createAdminSchema = z.object({
     contactNumber: z.string(),
   }),
 });
+
+
+export const createDoctorSchema = z.object({
+  password: z.string(),
+  doctor: z.object({
+    name: z.string(),
+    email: z.string(),
+    contactNumber: z.string(),
+    address: z.string(),
+    registrationNumber: z.string(),
+    experience: z.number(),
+    gender : z.enum([Gender.MALE, Gender.FEMALE]),
+    appointmentFee : z.number(),
+    qualification : z.string(),
+    currentWorkingPlace : z.string(),
+    designation : z.string(),
+  }),
+});
+
